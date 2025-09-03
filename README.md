@@ -11,19 +11,6 @@
 kubectl apply -f k8s/
 ```
 
-## Patch Web-Server
-```bash
-kubectl patch deploy/pod-peers-web --type='json' -p='[
-  {"op":"replace","path":"/spec/template/spec/containers/0/volumeMounts",
-   "value":[
-     {"name":"conf","mountPath":"/etc/nginx/nginx.conf","subPath":"nginx.conf"},
-     {"name":"html","mountPath":"/usr/share/nginx/html"},
-     {"name":"peers","mountPath":"/usr/share/nginx/html/peers"}
-   ]
-  }
-]'
-```
-
 ### If PowerDNS still shows Init:CrashLoopBackOff
 Inspect init container logs:
 ```bash
