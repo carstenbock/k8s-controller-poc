@@ -11,16 +11,6 @@
 kubectl apply -f k8s/
 ```
 
-### If PowerDNS still shows Init:CrashLoopBackOff
-Inspect init container logs:
-```bash
-# Replace with your actual pod name
-PDNS_POD=$(kubectl get pod -l app=powerdns -o jsonpath='{.items[0].metadata.name}')
-kubectl logs $PDNS_POD -c fetch-schema --previous
-kubectl logs $PDNS_POD -c init-db --previous
-kubectl describe pod $PDNS_POD | sed -n '/Events/,$p'
-```
-
 ### Test
 ```bash
 kubectl get pods
