@@ -16,7 +16,7 @@ kubectl apply -f k8s/
 kubectl get pods
 kubectl logs deploy/pdns-dns-controller
 kubectl port-forward deploy/pod-peers-web 8080:8080
-# open http://localhost:8080/peers.txt and /peers.json
+# open http://localhost:8080/peers/peers.txt and /peers/peers.json or just http://localhost:8080/
 ```
 
 Scale to see updates:
