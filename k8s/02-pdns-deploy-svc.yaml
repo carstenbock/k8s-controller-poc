@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: powerdns
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: powerdns
+  template:
+    metadata:
+      labels:
+        app: powerdns
+    spec:
+      initContainers:
+        - name: fetch-schema
+          image: curlimages/curl:8.11.0
+          command: ["/bin/sh","-c"]
+          args:
+            - |
+              set -e
+              URL="https://raw.githubusercontent.com/PowerDNS/pdns/rel/auth-4.8.x/modules/gsqlite3backend/schema.sqlite3.sql"
+              for i in 1 2 3 4 5; do curl -fsSL "$URL" -o /schema/schema.sql && break || sleep 2; done
+              test -s /schema/schema.sql || { echo "Failed to fetch schema" >&2; exit 1; }
+          volumeMounts:
+            - name: schema
+              mountPath: /schema
+        - name: init-db
+          image: alpine:3.20
+          command: ["/bin/sh","-c"]
+          args:
+            - |
+              set -e
+              apk add --no-cache sqlite
+              sqlite3 /data/pdns.sqlite3 < /schema/schema.sql
+              chmod 666 /data/pdns.sqlite3
+          volumeMounts:
+            - name: schema
+              mountPath: /schema
+            - name: data
+              mountPath: /data
+      containers:
+        - name: pdns
+          image: powerdns/pdns-auth-48:4.8.5
+          args: ["--config-dir=/etc/powerdns"]
+          ports:
+            - containerPort: 10053
+              name: dns-tcp
+              protocol: TCP
+            - containerPort: 10053
+              name: dns-udp
+              protocol: UDP
+            - containerPort: 8081
+              name: api
+              protocol: TCP
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/powerdns
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: conf
+          configMap:
+            name: powerdns-conf
+            items:
+              - key: pdns.conf
+                path: pdns.conf
+        - name: data
+          emptyDir: {}
+        - name: schema
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: powerdns
+  namespace: default
+spec:
+  selector:
+    app: powerdns
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: 10053
+      protocol: TCP
+    - name: dns-udp
+      port: 53
+      targetPort: 10053
+      protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: powerdns-api
+  namespace: default
+spec:
+  selector:
+    app: powerdns
+  ports:
+    - name: api
+      port: 8081
+      targetPort: api
+      protocol: TCP

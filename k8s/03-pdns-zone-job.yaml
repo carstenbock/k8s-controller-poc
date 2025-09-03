@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pdns-api
+  namespace: default
+type: Opaque
+stringData:
+  apiKey: "pdnsapikey"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: powerdns-init-zone
+  namespace: default
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: curlimages/curl:8.11.0
+          env:
+            - name: PDNS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pdns-api
+                  key: apiKey
+          command: ["/bin/sh","-c"]
+          args:
+            - |
+              set -e
+              API="http://powerdns-api.default.svc.cluster.local:8081/api/v1"
+              echo "Waiting for PowerDNS API..."
+              until curl -sf -H "X-API-Key: $PDNS_API_KEY" "$API/servers/localhost"; do
+                sleep 2
+              done
+              echo "Creating zone example.com. if missing..."
+              curl -sf -H "X-API-Key: $PDNS_API_KEY" -H "Content-Type: application/json" \
+                -X POST "$API/servers/localhost/zones" \
+                -d '{"name":"example.com.","kind":"Native","masters":[],"nameservers":["ns1.example.com."]}' \
+                || echo "Zone may already exist."
+              echo "Done."

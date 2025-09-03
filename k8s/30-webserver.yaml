@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-peers-web-conf
+  namespace: default
+data:
+  nginx.conf: |
+    worker_processes auto;
+    events { worker_connections 1024; }
+    http {
+      server {
+        listen 8080;
+        root /usr/share/nginx/html;
+        autoindex on;
+        location / {
+          try_files $uri $uri/ =404;
+        }
+      }
+    }
+  index.html: |
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Pod Peers</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>body{font-family: system-ui, sans-serif; margin:2rem} code,pre{background:#f5f5f5;padding:.5rem;border-radius:6px;display:block}</style>
+    </head>
+    <body>
+      <h1>Pod Peers</h1>
+      <p>This page exposes the files created by the controller’s ConfigMap:</p>
+      <ul>
+        <li><a href="/peers.txt">peers.txt</a></li>
+        <li><a href="/peers.json">peers.json</a></li>
+      </ul>
+      <p>Directory listing is enabled as well.</p>
+      <pre>Last updated: <script>document.write(new Date().toLocaleString())</script></pre>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-peers-web
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pod-peers-web
+  template:
+    metadata:
+      labels:
+        app: pod-peers-web
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: html
+              mountPath: /usr/share/nginx/html
+            - name: peers
+              mountPath: /usr/share/nginx/html/peers
+      volumes:
+        - name: conf
+          configMap:
+            name: pod-peers-web-conf
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+        - name: html
+          configMap:
+            name: pod-peers-web-conf
+            items:
+              - key: index.html
+                path: index.html
+        - name: peers
+          configMap:
+            name: pod-peers
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-peers-web
+  namespace: default
+spec:
+  selector:
+    app: pod-peers-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

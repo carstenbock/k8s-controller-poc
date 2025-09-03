@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: powerdns-conf
+  namespace: default
+data:
+  pdns.conf: |
+    api=yes
+    api-key=pdnsapikey
+    webserver=yes
+    webserver-address=0.0.0.0
+    webserver-port=8081
+    webserver-allow-from=0.0.0.0/0
+    launch=gsqlite3
+    gsqlite3-database=/data/pdns.sqlite3
+    local-address=0.0.0.0
+    local-port=10053
