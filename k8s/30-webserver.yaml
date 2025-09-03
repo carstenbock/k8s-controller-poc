@@ -30,8 +30,8 @@ data:
       <h1>Pod Peers</h1>
       <p>This page exposes the files created by the controller’s ConfigMap:</p>
       <ul>
-        <li><a href="/peers.txt">peers.txt</a></li>
-        <li><a href="/peers.json">peers.json</a></li>
+        <li><a href="/peers/peers.txt">peers.txt</a></li>
+        <li><a href="/peers/peers.json">peers.json</a></li>
       </ul>
       <p>Directory listing is enabled as well.</p>
       <pre>Last updated: <script>document.write(new Date().toLocaleString())</script></pre>
